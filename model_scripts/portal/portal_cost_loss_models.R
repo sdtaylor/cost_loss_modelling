@@ -3,7 +3,11 @@ library(tidyverse)
 population_thresholds = c(5,10,20,40)
 
 predictions = read_csv('initial_model_output/portal_model_output.csv') %>%
-  filter(model %in% c('tsglm'))
+  filter(model %in% c('tsglm','season_avg'))
+
+# For simplicity sake, only calculate value for a forecast 1 month ahead
+predictions = predictions %>%
+  filter(project_month == (initial_month+1))
 
 # #Use replicate_month to order the timeseries within each forecast replicate
 # predictions = predictions %>%
@@ -67,33 +71,36 @@ calculate_expense = function(df, treatment_cost, loss_cost, expense_type){
 #Calculate cost/loss model curves
 cost_loss_values=data.frame()
 
-for(this_species in unique(predictions$species)){
-  for(this_threshold in population_thresholds){
-    
-    predictions_binary = predictions %>%
-      filter(species==this_species) %>%
-      mutate(observed_binary = (num_rodents < this_threshold)*1,
-             predicted_binary= (prediction < this_threshold)*1) %>%
-      select(project_month, initial_month, observed_binary, predicted_binary, model)
-    
-    for(this_loss_cost in possible_loss_costs){
-      expense_perfect = calculate_expense(predictions_binary, treatment_cost = treatment_cost, 
-                                              loss_cost = this_loss_cost, expense_type='perfect')
-      expense_never = calculate_expense(predictions_binary, treatment_cost = treatment_cost, 
-                                                 loss_cost = this_loss_cost, expense_type='never')
-      expense_max = min(treatment_cost, expense_never)
-
-      forecast_expense = calculate_expense(predictions_binary, treatment_cost = treatment_cost, 
-                                            loss_cost = this_loss_cost, expense_type='forecast')
-        
-        cost_loss_values = cost_loss_values %>%
-          bind_rows(data.frame('a' = treatment_cost / this_loss_cost,
-                               'expense_max' = expense_max,
-                               'expense_perfect' = expense_perfect, 
-                               'expense_forecast' = forecast_expense,
-                               'species' = this_species,
-                               'threshold' = this_threshold))
+for(this_model in unique(predictions$model)){
+  for(this_species in unique(predictions$species)){
+    for(this_threshold in population_thresholds){
       
+      predictions_binary = predictions %>%
+        filter(species==this_species, model==this_model) %>%
+        mutate(observed_binary = (num_rodents < this_threshold)*1,
+               predicted_binary= (prediction < this_threshold)*1) %>%
+        select(project_month, initial_month, observed_binary, predicted_binary, model)
+      
+      for(this_loss_cost in possible_loss_costs){
+        expense_perfect = calculate_expense(predictions_binary, treatment_cost = treatment_cost, 
+                                                loss_cost = this_loss_cost, expense_type='perfect')
+        expense_never = calculate_expense(predictions_binary, treatment_cost = treatment_cost, 
+                                                   loss_cost = this_loss_cost, expense_type='never')
+        expense_max = min(treatment_cost, expense_never)
+  
+        forecast_expense = calculate_expense(predictions_binary, treatment_cost = treatment_cost, 
+                                              loss_cost = this_loss_cost, expense_type='forecast')
+          
+          cost_loss_values = cost_loss_values %>%
+            bind_rows(data.frame('a' = treatment_cost / this_loss_cost,
+                                 'expense_max' = expense_max,
+                                 'expense_perfect' = expense_perfect, 
+                                 'expense_forecast' = forecast_expense,
+                                 'model' = this_model,
+                                 'species' = this_species,
+                                 'threshold' = this_threshold))
+        
+      }
     }
   }
 }
