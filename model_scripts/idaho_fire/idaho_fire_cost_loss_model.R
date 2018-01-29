@@ -106,38 +106,4 @@ for(loss_cost in possible_loss_costs){
 
 cost_loss_values$value = with(cost_loss_values, (expense_max - expense_forecast) / (expense_max - expense_perfect))
 
-ggplot(cost_loss_values, aes(x=year, y=value, color=a, group=a)) + 
-  ylim(0,1) +
-  geom_line(size=1.5)+
-  scale_linetype_manual(values = c('solid','dashed','dotted')) +
-  theme(plot.title = element_text(size = 30),
-        axis.text = element_text(size = 20),
-        axis.title = element_text(size = 22),
-        legend.text = element_text(size = 15), 
-        legend.title = element_text(size = 20),
-        strip.text.x=element_text(size=22),
-        strip.text.y=element_text(size=22),
-        legend.position = "bottom", 
-        legend.direction = "horizontal",
-        legend.key.width = unit(35, units = 'mm')) +
-  labs(title = "Idaho Fire Cost Loss Analysis") 
-
-ggplot(cost_loss_values, aes(x=a, y=value)) + 
-  ylim(-10,1) +
-  xlim(0,1) +
-  geom_line(size=1.5)+
-  scale_linetype_manual(values = c('solid','dashed','dotted')) +
-  theme(plot.title = element_text(size = 30),
-        axis.text = element_text(size = 20),
-        axis.title = element_text(size = 22),
-        legend.text = element_text(size = 15), 
-        legend.title = element_text(size = 20),
-        strip.text.x=element_text(size=22),
-        strip.text.y=element_text(size=22),
-        legend.position = "bottom", 
-        legend.direction = "horizontal",
-        legend.key.width = unit(35, units = 'mm')) +
-  facet_grid(~year)+
-  labs(title = "Idaho Fire Cost Loss Analysis") 
-
 write_csv(cost_loss_values, cost_loss_value_file)
