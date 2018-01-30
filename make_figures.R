@@ -31,6 +31,7 @@ idaho_value = ggplot(idaho_cost_loss_values, aes(x=a, y=value, color=as.factor(y
   geom_line(size=2)+
   #scale_color_brewer(palette = 'Greys') +
   scale_color_viridis(discrete = TRUE, direction = -1, option = 'inferno', end=0.94) +
+  theme_bw() +
   theme(plot.title = element_text(size = 30),
         axis.text = element_text(size = 20),
         axis.title = element_text(size = 22),
@@ -48,7 +49,7 @@ idaho_value = ggplot(idaho_cost_loss_values, aes(x=a, y=value, color=as.factor(y
 ggsave(idaho_value, filename = 'manuscript/idaho_cost_loss_value.png',height=8, width=10)
 
 # Value over time
-a_ratios_of_interest = c(0.1, 0.25, 0.51, 0.63)
+a_ratios_of_interest = c(0.01, 0.25, 0.51, 0.63)
 idaho_value_over_time = ggplot(filter(idaho_cost_loss_values, a %in% a_ratios_of_interest), aes(x=year, y=value, color=as.factor(a), group=a)) + 
   ylim(-0.5,1) +
   geom_line(size=2.5)+
@@ -72,4 +73,6 @@ idaho_value_over_time = ggplot(filter(idaho_cost_loss_values, a %in% a_ratios_of
 
 ggsave(idaho_value_over_time, filename = 'manuscript/idaho_value_over_time.png',height=8, width=10)
 
-
+both_idaho_plots = cowplot::plot_grid(idaho_value, idaho_value_over_time,
+                                      labels=c('A.','B.'), ncol=1, label_size = 30)
+ggsave(both_idaho_plots, filename='manuscript/idaho_value.png',height=16, width=10)
