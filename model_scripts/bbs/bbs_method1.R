@@ -173,7 +173,7 @@ finalDF=foreach(thisSpp=unique(occData$Aou), .combine=rbind, .packages=c('dplyr'
   
   # Get the  threshold for presence based on the held 20% held out training data
   thisSpp_data_training$prediction = predict(model, n.trees = perf, newdata = thisSpp_data_training, type='response')
-  threshold = with(thisSpp_data_training[calibration_samples,], get_threshold(presence, prediction))
+  max_spec_sens_threshold = with(thisSpp_data_training[calibration_samples,], get_threshold(presence, prediction))
   
   # Make predictions on the testing data
   thisSpp_data_testing = thisSpp_occurances %>%
@@ -184,8 +184,8 @@ finalDF=foreach(thisSpp=unique(occData$Aou), .combine=rbind, .packages=c('dplyr'
   this_spp_predictions = thisSpp_data_testing %>%
     dplyr::select(siteID, presence) 
   
-  this_spp_predictions$prediction = predict(model, n.trees = perf, newdata=thisSpp_data_testing, type='response')
-  this_spp_predictions$prediction = (this_spp_predictions$prediction > threshold) * 1
+  this_spp_predictions$probability_of_presence = predict(model, n.trees = perf, newdata=thisSpp_data_testing, type='response')
+  this_spp_predictions$binary_prediction = (this_spp_predictions$prediction > max_spec_sens_threshold) * 1
 
   this_spp_predictions$Aou=thisSpp
   return(this_spp_predictions)
