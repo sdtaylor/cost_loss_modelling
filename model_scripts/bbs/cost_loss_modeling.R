@@ -87,9 +87,3 @@ value_scores$value = with(value_scores, (expense_max - expense_forecast)/(expens
 
 
 write_csv(value_scores, 'results/bbs_cost_loss_results.csv')
-
-
-
-# ggplot(value_scores, aes(x=a, y=value, color=as.factor(Aou))) + 
-#   geom_line() + 
-#   ylim(0,1)
