@@ -140,8 +140,11 @@ focal_spp=c(7360, #Carolina chickadee
             4100 #Golden-fronted Woodpecker
 )
 
-#finalDF=foreach(thisSpp=unique(occData$Aou), .combine=rbind, .packages=c('dplyr','tidyr','magrittr','gbm')) %dopar% {
-finalDF=foreach(thisSpp=focal_spp, .combine=rbind, .packages=c('dplyr','tidyr','magrittr','gbm')) %dopar% {
+finalDF = data.frame()
+
+finalDF=foreach(thisSpp=unique(occData$Aou), .combine=rbind, .packages=c('dplyr','tidyr','magrittr','gbm')) %dopar% {
+#finalDF=foreach(thisSpp=focal_spp, .combine=rbind, .packages=c('dplyr','tidyr','magrittr','gbm')) %dopar% {
+#for(thisSpp in unique(occData$Aou)){
   this_spp_results=data.frame()
   
   thisSpp_occurances = occData %>%
@@ -156,6 +159,7 @@ finalDF=foreach(thisSpp=focal_spp, .combine=rbind, .packages=c('dplyr','tidyr','
   #Skip rare species that end up with a low sample size after all the  filtering
   if(sum(thisSpp_data_training$presence)<100){
     return(data.frame())
+    #next()
   }
   
   #Leave out 20% for model threshold selection 
@@ -181,10 +185,12 @@ finalDF=foreach(thisSpp=focal_spp, .combine=rbind, .packages=c('dplyr','tidyr','
     dplyr::select(siteID, presence) 
   
   this_spp_predictions$prediction = predict(model, n.trees = perf, newdata=thisSpp_data_testing, type='response')
-  this_spp_predictions$prediction = (predictions$prediction > threshold) * 1
+  this_spp_predictions$prediction = (this_spp_predictions$prediction > threshold) * 1
 
   this_spp_predictions$Aou=thisSpp
   return(this_spp_predictions)
+  #finalDF = finalDF %>%
+  #  bind_rows(this_spp_predictions)
 }
 
 write_csv(finalDF, initial_results_file)
