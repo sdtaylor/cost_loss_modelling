@@ -144,7 +144,7 @@ finalDF = data.frame()
 
 finalDF=foreach(thisSpp=unique(occData$Aou), .combine=rbind, .packages=c('dplyr','tidyr','magrittr','gbm')) %dopar% {
 #finalDF=foreach(thisSpp=focal_spp, .combine=rbind, .packages=c('dplyr','tidyr','magrittr','gbm')) %dopar% {
-#for(thisSpp in unique(occData$Aou)){
+#for(thisSpp in focal_spp){
   this_spp_results=data.frame()
   
   thisSpp_occurances = occData %>%
@@ -185,7 +185,7 @@ finalDF=foreach(thisSpp=unique(occData$Aou), .combine=rbind, .packages=c('dplyr'
     dplyr::select(siteID, presence) 
   
   this_spp_predictions$probability_of_presence = predict(model, n.trees = perf, newdata=thisSpp_data_testing, type='response')
-  this_spp_predictions$binary_prediction = (this_spp_predictions$prediction > max_spec_sens_threshold) * 1
+  this_spp_predictions$binary_prediction = (this_spp_predictions$probability_of_presence > max_spec_sens_threshold) * 1
 
   this_spp_predictions$Aou=thisSpp
   return(this_spp_predictions)
