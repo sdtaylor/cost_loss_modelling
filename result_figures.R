@@ -11,14 +11,19 @@ thresholds = sort(unique(portal_cost_loss_values$threshold))
 threshold_labels = paste0('< ', thresholds)
 portal_cost_loss_values$threshold = factor(portal_cost_loss_values$threshold, levels = thresholds, labels = threshold_labels)
 
+portal_cost_loss_values$model = factor(portal_cost_loss_values$model, levels = c('season_avg','tsglm'), 
+                                                        labels = c('Seasonal\nAverage', 'TS-GLM'))
+
 portal_fig = ggplot(portal_cost_loss_values, aes(x=a, y=value, color=model)) + 
   ylim(0.01,1) +
   geom_line(size=1.5) + 
+  scale_color_manual(values = c('#E69F00','#0072B2')) + 
   facet_grid(species~threshold) +
   theme_bw() +
   theme(axis.text = element_text(size=8),
         plot.subtitle = element_text(hjust = 0.5)) +
-  labs(subtitle='Abundance Threshold')
+  labs(subtitle='Abundance Threshold',
+       x='a', y = 'Value', color='Model')
 
 ggsave(portal_fig, filename = 'manuscript/portal_cost_loss_values.png', height=5, width=8)
 
