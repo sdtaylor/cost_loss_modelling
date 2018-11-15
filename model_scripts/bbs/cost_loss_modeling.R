@@ -9,10 +9,7 @@ outcomes = data.frame(presence=c(0,1,1,0),
                       prediction=c(1,1,0,0),
                       type=c('fp','tp','fn','tn'))
 
-#Gives cost per km^2/yr in terms of prescribed treatment vs actual losses
 calculate_cost = function(df, treatment_cost, loss_cost, threshold=0, expense_type){
-  #spatial_scale_km = unique(df$spatial_scale_km)
-
   if(expense_type=='perfect'){
     df$prediction = df$presence
   } else if(expense_type=='always') {
@@ -52,8 +49,8 @@ for(this_aou in unique(site_level_predictions$Aou)){
   
   #Save some metrics about the model
   prevalence = round(mean(this_spp_predictions$presence),2)
-  spec = with(this_spp_predictions, specificity(presence, prediction))
-  sens = with(this_spp_predictions, sensitivity(presence, prediction))
+  spec = with(this_spp_predictions, specificity(presence, binary_prediction))
+  sens = with(this_spp_predictions, sensitivity(presence, binary_prediction))
   model_stats = model_stats %>%
     bind_rows(data.frame('Aou' = this_aou, prevalence = prevalence, mss = spec+sens))
   
@@ -64,17 +61,29 @@ for(this_aou in unique(site_level_predictions$Aou)){
                                                   loss_cost=0, threshold=0, expense_type='always')
 
   for(this_loss_cost in possible_loss_costs){
-    expense_never = calculate_cost(this_spp_predictions, treatment_cost = treatment_cost,
-                                   loss_cost=this_loss_cost, threshold=0, expense_type='never')
-    a = treatment_cost/this_loss_cost
-    expense_forecast = calculate_cost(this_spp_predictions, treatment_cost = treatment_cost, loss_cost = this_loss_cost,
-                                      threshold=a, expense_type = 'forecast')
+    for(threshold_type in c('maximize_specificity_sensitivity','cl_ratio')){
+      a = treatment_cost/this_loss_cost
+      
+      # Set the threshold for presencse as either the maxmimization of specificity/sensitivity (calculated in the modeling building script)
+      # or as the cost/loss ration (a).
+      # Thre prediction column is references in the caluclate_cost() function above. 
+      if(threshold_type == 'maximize_specificity_sensitivity'){
+        this_spp_predictions$prediction = this_spp_predictions$binary_prediction
+      } else {
+        this_spp_predictions$prediction = 1 * (this_spp_predictions$probability_of_presence >= a)
+      }
+      
     
-    value_scores = value_scores %>%
-      bind_rows(data.frame('Aou'=this_aou, 'a'=a, threshold = a,
-                           'expense_forecast' = expense_forecast, 'expense_perfect'=expense_perfect, 
-                           'expense_always'= expense_always, 'expense_never'=expense_never))
-    
+      expense_never = calculate_cost(this_spp_predictions, treatment_cost = treatment_cost,
+                                     loss_cost=this_loss_cost, threshold=0, expense_type='never')
+      expense_forecast = calculate_cost(this_spp_predictions, treatment_cost = treatment_cost, loss_cost = this_loss_cost,
+                                        threshold=a, expense_type = 'forecast')
+      
+      value_scores = value_scores %>%
+        bind_rows(data.frame('Aou'=this_aou, 'a'=a, threshold = a, threshold_type = threshold_type,
+                             'expense_forecast' = expense_forecast, 'expense_perfect'=expense_perfect, 
+                             'expense_always'= expense_always, 'expense_never'=expense_never))
+    }
   }
 }
 
