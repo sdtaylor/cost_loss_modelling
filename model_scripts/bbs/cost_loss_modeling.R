@@ -48,11 +48,11 @@ for(this_aou in unique(site_level_predictions$Aou)){
     filter(Aou==this_aou)
   
   #Save some metrics about the model
-  prevalence = round(mean(this_spp_predictions$presence),2)
-  spec = with(this_spp_predictions, specificity(presence, binary_prediction))
-  sens = with(this_spp_predictions, sensitivity(presence, binary_prediction))
-  model_stats = model_stats %>%
-    bind_rows(data.frame('Aou' = this_aou, prevalence = prevalence, mss = spec+sens))
+  # prevalence = round(mean(this_spp_predictions$presence),2)
+  # spec = with(this_spp_predictions, specificity(presence, binary_prediction))
+  # sens = with(this_spp_predictions, sensitivity(presence, binary_prediction))
+  # model_stats = model_stats %>%
+  #   bind_rows(data.frame('Aou' = this_aou, prevalence = prevalence, mss = spec+sens))
   
   #loss_cost and threshold here do not matter when expense_type is perfect or always
   expense_perfect = calculate_cost(this_spp_predictions, treatment_cost = treatment_cost,
@@ -61,16 +61,21 @@ for(this_aou in unique(site_level_predictions$Aou)){
                                                   loss_cost=0, threshold=0, expense_type='always')
 
   for(this_loss_cost in possible_loss_costs){
-    for(threshold_type in c('maximize_specificity_sensitivity','cl_ratio')){
+    for(threshold_type in c('max_specificity_sensitivity_base_probability','max_specificity_sensitivity_calibrated_probability',
+                            'cl_ratio_base_probability','cl_ratio_calibrated_probability')){
       a = treatment_cost/this_loss_cost
       
       # Set the threshold for presencse as either the maxmimization of specificity/sensitivity (calculated in the modeling building script)
       # or as the cost/loss ration (a).
       # Thre prediction column is references in the caluclate_cost() function above. 
-      if(threshold_type == 'maximize_specificity_sensitivity'){
-        this_spp_predictions$prediction = this_spp_predictions$binary_prediction
-      } else {
-        this_spp_predictions$prediction = 1 * (this_spp_predictions$probability_of_presence >= a)
+      if(threshold_type == 'max_specificity_sensitivity_base_probability') {
+        this_spp_predictions$prediction = this_spp_predictions$base_binary_prediction
+      } else if(threshold_type == 'max_specificity_sensitivity_calibrated_probability') {
+        this_spp_predictions$prediction = this_spp_predictions$calibrated_binary_prediction
+      } else if(threshold_type == 'cl_ratio_base_probability') {
+        this_spp_predictions$prediction = 1 * (this_spp_predictions$base_probability >= a)
+      } else if(threshold_type == 'cl_ratio_calibrated_probability') {
+        this_spp_predictions$prediction = 1 * (this_spp_predictions$calibrated_probability >= a)
       }
       
     
@@ -88,8 +93,8 @@ for(this_aou in unique(site_level_predictions$Aou)){
 }
 
 
-model_stats$prevalence = round(model_stats$prevalence, 2)
-model_stats$mss = round(model_stats$mss,2)
+# model_stats$prevalence = round(model_stats$prevalence, 2)
+# model_stats$mss = round(model_stats$mss,2)
 
 value_scores$expense_max = with(value_scores, pmin(expense_always, expense_never))
 value_scores$value = with(value_scores, (expense_max - expense_forecast)/(expense_max - expense_perfect))

@@ -171,9 +171,15 @@ finalDF=foreach(thisSpp=unique(occData$Aou), .combine=rbind, .packages=c('dplyr'
   #model = glm(modelFormula, family='binomial', data=thisSpp_data_training)
   #model=step(model, direction='both')
   
-  # Get the  threshold for presence based on the held 20% held out training data
-  thisSpp_data_training$prediction = predict(model, n.trees = perf, newdata = thisSpp_data_training, type='response')
-  max_spec_sens_threshold = with(thisSpp_data_training[calibration_samples,], get_threshold(presence, prediction))
+  # Use the 20% held out training data to: 1) make a calibration model and 2) determine the best threshold based on
+  # maximized specificity + sensitivity
+  thisSpp_data_training$base_probability = predict(model, n.trees = perf, newdata = thisSpp_data_training, type='response')
+  
+  calibration_model = glm(presence~base_probability, family='binomial', data=thisSpp_data_training[calibration_samples,])
+  thisSpp_data_training$calibrated_prediction = predict(calibration_model, newdata = thisSpp_data_training, type='response')
+  
+  max_spec_sens_threshold_uncalibrated = with(thisSpp_data_training[calibration_samples,], get_threshold(presence, base_probability))
+  max_spec_sens_threshold_calibrated = with(thisSpp_data_training[calibration_samples,], get_threshold(presence, calibrated_prediction))
   
   # Make predictions on the testing data
   thisSpp_data_testing = thisSpp_occurances %>%
@@ -184,8 +190,10 @@ finalDF=foreach(thisSpp=unique(occData$Aou), .combine=rbind, .packages=c('dplyr'
   this_spp_predictions = thisSpp_data_testing %>%
     dplyr::select(siteID, presence) 
   
-  this_spp_predictions$probability_of_presence = predict(model, n.trees = perf, newdata=thisSpp_data_testing, type='response')
-  this_spp_predictions$binary_prediction = (this_spp_predictions$probability_of_presence > max_spec_sens_threshold) * 1
+  this_spp_predictions$base_probability = predict(model, n.trees = perf, newdata=thisSpp_data_testing, type='response')
+  this_spp_predictions$calibrated_probability = predict(calibration_model, newdata = this_spp_predictions, type='response')
+  this_spp_predictions$base_binary_prediction = (this_spp_predictions$base_probability > max_spec_sens_threshold_uncalibrated) * 1
+  this_spp_predictions$calibrated_binary_prediction = (this_spp_predictions$calibrated_probability > max_spec_sens_threshold_calibrated) * 1
 
   this_spp_predictions$Aou=thisSpp
   return(this_spp_predictions)
